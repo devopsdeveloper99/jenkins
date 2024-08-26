@@ -1,6 +1,6 @@
 # jenkins
 
-1. Install jenkins using docker image from DockerHub
+1. Install jenkins using docker image from DockerHub.
 2. Install AWS CLI inside docker
 - docker exec -it -u root jenkins-docker bash
 - apt-get update && apt-get install -y curl unzip
