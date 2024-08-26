@@ -1,49 +1,54 @@
 pipeline {
-    agent any
+
+    parameters {
+        booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run apply after generating plan?')
+    } 
     environment{
         AWS_REGION="us-west-2"
         THE_BUTLER_SAYS_SO=credentials('aws-creds')
     }
 
+   agent  any
     stages {
-        stage('Checkout') {
+        stage('checkout') {
             steps {
-                git branch: 'dev', url: 'https://github.com/devopsdeveloper99/jenkins.git' // Update with your Git repo
-            }
-        }
-
-        stage('Terraform Init') {
-            steps {
-                script {
-                        sh 'terraform init'
+                 script{
+                        dir("terraform")
+                        {
+                            git "https://github.com/devopsdeveloper99/jenkins.git"
+                        }
+                    }
                 }
             }
-        }
 
-        stage('Terraform Plan') {
+        stage('Plan') {
             steps {
-                script {
-                        sh 'terraform plan -out=tfplan'
-                }
+                sh 'pwd;cd terraform/ ; terraform init'
+                sh "pwd;cd terraform/ ; terraform plan -out tfplan"
+                sh 'pwd;cd terraform/ ; terraform show -no-color tfplan > tfplan.txt'
             }
         }
+        stage('Approval') {
+           when {
+               not {
+                   equals expected: true, actual: params.autoApprove
+               }
+           }
 
-        stage('Terraform Apply') {
+           steps {
+               script {
+                    def plan = readFile 'terraform/tfplan.txt'
+                    input message: "Do you want to apply the plan?",
+                    parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
+               }
+           }
+       }
+
+        stage('Apply') {
             steps {
-                script {
-
-                        sh 'terraform apply tfplan'
-
-                }
+                sh "pwd;cd terraform/ ; terraform apply -input=false tfplan"
             }
         }
     }
 
-    post {
-        cleanup {
-            script {
-                echo "Cleaning up temporary files"
-            }
-        }
-    }
-}
+  }
