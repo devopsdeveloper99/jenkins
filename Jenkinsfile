@@ -1,8 +1,11 @@
 pipeline {
-
     parameters {
-        booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run apply after generating plan?')
-    } 
+        choice(
+            name: 'TERRAFORM_ACTION',
+            choices: ['apply', 'destroy'],
+            description: 'Choose whether to apply or destroy Terraform resources'
+        )
+    }
     environment{
         AWS_REGION="us-west-2"
         THE_BUTLER_SAYS_SO=credentials('aws-creds')
@@ -71,11 +74,5 @@ pipeline {
             echo 'Deployment failed.'
         }
     }
-    parameters {
-        choice(
-            name: 'TERRAFORM_ACTION',
-            choices: ['apply', 'destroy'],
-            description: 'Choose whether to apply or destroy Terraform resources'
-        )
-    }
+
 }
