@@ -44,6 +44,19 @@ pipeline {
                 }
             }
         }
+        stage('Terraform Destroy') {
+            when {
+                expression {
+                    return params.TERRAFORM_ACTION == 'destroy'
+                }
+            }
+            steps {
+                // Destroy the infrastructure
+                dir('terraform') {
+                    sh 'terraform destroy -auto-approve'
+                }
+            }
+        }
     }
 
     post {
@@ -57,5 +70,12 @@ pipeline {
         failure {
             echo 'Deployment failed.'
         }
+    }
+    parameters {
+        choice(
+            name: 'TERRAFORM_ACTION',
+            choices: ['apply', 'destroy'],
+            description: 'Choose whether to apply or destroy Terraform resources'
+        )
     }
 }
