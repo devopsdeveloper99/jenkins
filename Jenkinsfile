@@ -9,46 +9,53 @@ pipeline {
     }
 
    agent  any
-    stages {
-        stage('checkout') {
-            steps {
-                 script{
-                        dir("tfcode")
-                        {
-                            git "https://github.com/devopsdeveloper99/jenkins.git"
-                        }
-                    }
-                }
-            }
 
-        stage('Plan') {
+    stages {
+        stage('Checkout Code') {
             steps {
-                sh 'pwd;cd tfcode/ ; tfcode init'
-                sh "pwd;cd tfcode/ ; tfcode plan -out tfplan"
-                sh 'pwd;cd tfcode/ ; tfcode show -no-color tfplan > tfplan.txt'
+                // Checkout the code from the repository
+                checkout scm
             }
         }
-        stage('Approval') {
-           when {
-               not {
-                   equals expected: true, actual: params.autoApprove
-               }
-           }
 
-           steps {
-               script {
-                    def plan = readFile 'tfcode/tfplan.txt'
-                    input message: "Do you want to apply the plan?",
-                    parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
-               }
-           }
-       }
-
-        stage('Apply') {
+        stage('Terraform Init') {
             steps {
-                sh "pwd;cd tfcode/ ; tfcode apply -input=false tfplan"
+                // Navigate to the Terraform directory and initialize
+                dir('terraform') {
+                    sh 'terraform init'
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                // Plan the infrastructure changes
+                dir('terraform') {
+                    sh 'terraform plan -out=tfplan'
+                }
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                // Apply the changes to deploy the EC2 instance
+                dir('terraform') {
+                    sh 'terraform apply -auto-approve tfplan'
+                }
             }
         }
     }
 
-  }
+    post {
+        always {
+            // Cleanup, notifications, or other post-build actions
+            echo 'Pipeline completed.'
+        }
+        success {
+            echo 'Deployment successful!'
+        }
+        failure {
+            echo 'Deployment failed.'
+        }
+    }
+}
